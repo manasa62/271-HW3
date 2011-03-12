@@ -9,11 +9,11 @@ import java.util.LinkedList;
 
 public class Message implements Serializable{
 
-	Constants.MESSAGE_TYPES msgType;
-	int destID;
-	int srcID;
-	int proposalNum;
-	String value;
+	public Constants.MESSAGE_TYPES msgType;
+	public int destID;
+	public int srcID;
+	public int ballotNum;
+	public String value;
 	
 	
 	public Message(Constants.MESSAGE_TYPES msgType, int src, int dest, int proposalNum, String value){
@@ -21,13 +21,13 @@ public class Message implements Serializable{
 		this.msgType = msgType;
 		this.destID = dest;
 		this.srcID = src;
-		this.proposalNum = proposalNum;
+		this.ballotNum = proposalNum;
 		this.value =  value;
 	}
 	
 	public String toString(){
 		String res;
-		res = "Msg Type: "+this.msgType+" "+"  Dest: "+this.destID+"  Src: "+this.srcID+"  Proposal No: "+this.proposalNum+"  Value: "+this.value+"\n";
+		res = "Msg Type: "+this.msgType+" "+"  Dest: "+this.destID+"  Src: "+this.srcID+"  Ballot No: "+this.ballotNum+"  Value: "+this.value+"\n";
 		return res;
 	}
 	
@@ -42,10 +42,7 @@ public class Message implements Serializable{
 	      return data;
 	  }
 
-	public static Message msgToLeader(int srcID, int destID, String value){
-		Message msg = new Message(Constants.MESSAGE_TYPES.TOLEADER, srcID,destID,Constants.NULL,value);
-		return msg;
-	}
+	
 	
 	public static Message prepareMsg(int srcID, int destID, int proposalNum,String value){
 		Message msg = new Message(Constants.MESSAGE_TYPES.PREPARE, srcID,destID,proposalNum,Constants.NULL_STRING);
@@ -54,6 +51,11 @@ public class Message implements Serializable{
 	
 	public static Message acceptMsg(int srcID, int destID, int propNum ,String value){
 		Message msg = new Message(Constants.MESSAGE_TYPES.ACCEPT, srcID,destID,propNum,value);
+		return msg;
+	}
+	
+	public static Message ackMsg(int srcID, int destID, int propNum ,String acceptedValue){
+		Message msg = new Message(Constants.MESSAGE_TYPES.ACK, srcID,destID,propNum,acceptedValue);
 		return msg;
 	}
 	

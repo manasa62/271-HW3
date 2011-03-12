@@ -99,16 +99,17 @@ public class Router implements Runnable {
 					
 					if(msg.destID == Constants.BROADCAST){
 						 Set<Entry<Integer, String>> set = this.clientTable.entrySet();
-						    for (Entry<Integer, String> e : set )
-								if(e.getKey() != Constants.LEADER){
-								  Message newmsg = Message.acceptMsg(msg.srcID,e.getKey(), msg.proposalNum, msg.value);
+						    for (Entry<Integer, String> e : set ) {
+								 if(e.getKey() != msg.srcID){
+								  Message newmsg = new Message(msg.msgType,msg.srcID,e.getKey(), msg.ballotNum, msg.value);
 								  try {
 									sendMessage(newmsg, requestSocket);
 								} catch (IOException e1) {
 									
 									e1.printStackTrace();
 								}
-								}
+						    }	
+						    }
 
 				}
 					else {

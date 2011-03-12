@@ -13,11 +13,12 @@ public class Constants {
 	public static  int pid = 0;
 	
 	public static enum MESSAGE_TYPES {
-		TOLEADER, PREPARE, ACCEPT
+		TOLEADER, PREPARE, ACCEPT, ACK
 	}
 	public static final int NULL = -1;
-	public static final String NULL_STRING = "";
+	public static final String NULL_STRING = "null";
 	public static int LEADER = 0;
 	public static final int BROADCAST = 9999;
+	public static final int NO_OF_NODES = 3;
 
 }

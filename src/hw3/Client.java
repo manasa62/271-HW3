@@ -31,7 +31,12 @@ public class Client implements Runnable {
 	public String logName;
 	public File dicFile;
 	public File logFile;
+	private String currentMsg;
 	private int ballotNum;
+	private int acceptedBallotNum;
+	private String acceptedValue;
+	private int ackCount;
+	private int highestBallotNum;
 
 	public Client(int pid, int portNum) {
 		this.portNum = portNum;
@@ -42,6 +47,7 @@ public class Client implements Runnable {
 		this.logName = "Log" + pid;
 		this.logFile = new File(this.logName);
 		this.ballotNum = 1;
+		resetValues();
 	}
 
 	
@@ -75,7 +81,9 @@ public class Client implements Runnable {
 				e1.printStackTrace();
 			}
 			
-			Message msgToSend = Message.msgToLeader(this.pid, Constants.LEADER, msg);
+			this.currentMsg = msg.toString();
+			System.out.println("Current message "+this.currentMsg);
+			Message msgToSend = Message.prepareMsg(this.pid, Constants.BROADCAST, ++ballotNum,Constants.NULL_STRING);
 			
 			sendMessage(msgToSend, requestSocket);
 		
@@ -142,6 +150,13 @@ public class Client implements Runnable {
 			System.out.println("Socket creation failed on the client");
 			e.printStackTrace();
 		}
+		
+		DatagramSocket requestSocket = null;
+		try {
+			requestSocket = new DatagramSocket();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		while (true) {
 			try {
 				thisConnection.receive(recvdpkt);
@@ -152,20 +167,51 @@ public class Client implements Runnable {
 				switch(msg.msgType){
 				case TOLEADER:
 								Message newmsg = Message.acceptMsg(msg.srcID, Constants.BROADCAST, this.ballotNum, msg.value);
-								DatagramSocket requestSocket = null;
-								try {
-									requestSocket = new DatagramSocket();
-								} catch (IOException e) {
-									e.printStackTrace();
-								}
 								sendMessage(newmsg, requestSocket);
+								break;
 					
 				case ACCEPT:
+								if(msg.ballotNum > this.acceptedBallotNum){
 								writeToDictionary(msg);
 								writeToLog(msg);
+								resetValues();
+								}
+								break;
+								
+				case PREPARE:
+								if(msg.ballotNum >= this.acceptedBallotNum){
+									this.acceptedBallotNum = msg.ballotNum;
+									newmsg = new Message(Constants.MESSAGE_TYPES.ACK,this.pid, msg.srcID, this.acceptedBallotNum, this.acceptedValue);
+									sendMessage(newmsg, requestSocket);
+								}
+								break;
+								
+				case ACK:		
+								 this.ackCount++;
+								 if(msg.ballotNum > this.highestBallotNum){
+									 this.highestBallotNum = msg.ballotNum;
+									 this.acceptedValue = msg.value;
+									 System.out.println("Value of highest ballot num : "+this.highestBallotNum+" "+this.acceptedValue);
+								 }
+								 if(this.ackCount > Constants.NO_OF_NODES/2){
+								 if(this.acceptedValue.equals(Constants.NULL_STRING)){
+									 System.out.println("Accepted values recvd is null");
+									 newmsg = new Message(Constants.MESSAGE_TYPES.ACCEPT,this.pid, Constants.BROADCAST, this.ballotNum,this.currentMsg);
+									 System.out.println("Sending accept message : "+newmsg.toString());
+									 sendMessage(newmsg, requestSocket);
+								 }
+								 else{
+									 System.out.println("Accepted values recvd is not null");
+									 newmsg = new Message(Constants.MESSAGE_TYPES.ACCEPT,this.pid, Constants.BROADCAST, this.ballotNum,this.acceptedValue);
+									 System.out.println("Sending accept message : "+newmsg.toString());
+									 sendMessage(newmsg, requestSocket);
+								 }
+								}
+								break;
+								
 				}
 				
-				System.out.println("Value : " + msg.value);
+				
 				}
 			catch (IOException e) {
 
@@ -174,6 +220,15 @@ public class Client implements Runnable {
 
 		}
 
+	}
+
+
+	private void resetValues() {
+		this.currentMsg = Constants.NULL_STRING;
+		this.acceptedBallotNum = Constants.NULL;
+		this.acceptedValue = Constants.NULL_STRING;
+		this.ackCount = 0;
+		this.highestBallotNum = Constants.NULL;
 	}
 
 
