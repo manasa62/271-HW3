@@ -37,6 +37,9 @@ public class Client implements Runnable {
 	private String acceptedValue;
 	private int ackCount;
 	private int highestBallotNum;
+	private int currentLeader;
+	private int prepareId;
+	private boolean acceptSent;
 
 	public Client(int pid, int portNum) {
 		this.portNum = portNum;
@@ -47,6 +50,8 @@ public class Client implements Runnable {
 		this.logName = "Log" + pid;
 		this.logFile = new File(this.logName);
 		this.ballotNum = 1;
+		this.currentLeader = Constants.NULL;
+		
 		resetValues();
 	}
 
@@ -83,8 +88,14 @@ public class Client implements Runnable {
 			
 			this.currentMsg = msg.toString();
 			System.out.println("Current message "+this.currentMsg);
-			Message msgToSend = Message.prepareMsg(this.pid, Constants.BROADCAST, ++ballotNum,Constants.NULL_STRING);
+			Message msgToSend = null;
+			if(this.currentLeader != Constants.NULL){
 			
+			msgToSend = new Message(Constants.MESSAGE_TYPES.TOLEADER,this.pid, this.currentLeader, ++ballotNum,this.currentMsg);	
+			}
+			else {
+			msgToSend = new Message(Constants.MESSAGE_TYPES.PREPARE,this.pid, Constants.BROADCAST, ++ballotNum,Constants.NULL_STRING);
+			}
 			sendMessage(msgToSend, requestSocket);
 		
 		requestSocket.close();
@@ -137,6 +148,7 @@ public class Client implements Runnable {
 
 	
 	public void run() {
+		
 		DatagramSocket thisConnection = null;
 		byte[] buf = new byte[100000];
 		String[] msgparts = new String[2];
@@ -166,20 +178,24 @@ public class Client implements Runnable {
 				System.out.println("Recvd in client :"+msg.value+" "+msg.msgType);
 				switch(msg.msgType){
 				case TOLEADER:
-								Message newmsg = Message.acceptMsg(msg.srcID, Constants.BROADCAST, this.ballotNum, msg.value);
+								Message newmsg = new Message(Constants.MESSAGE_TYPES.ACCEPT,msg.srcID, Constants.BROADCAST, this.ballotNum, msg.value);
 								sendMessage(newmsg, requestSocket);
 								break;
 					
 				case ACCEPT:
-								if(msg.ballotNum > this.acceptedBallotNum){
+								if(this.prepareId == msg.srcID){
+								this.currentLeader = msg.srcID;
+								}
+								System.out.println("The current leader is: "+this.currentLeader);
 								writeToDictionary(msg);
 								writeToLog(msg);
 								resetValues();
-								}
+															
 								break;
 								
 				case PREPARE:
 								if(msg.ballotNum >= this.acceptedBallotNum){
+									this.prepareId = msg.srcID;
 									this.acceptedBallotNum = msg.ballotNum;
 									newmsg = new Message(Constants.MESSAGE_TYPES.ACK,this.pid, msg.srcID, this.acceptedBallotNum, this.acceptedValue);
 									sendMessage(newmsg, requestSocket);
@@ -187,26 +203,33 @@ public class Client implements Runnable {
 								break;
 								
 				case ACK:		
+								 
 								 this.ackCount++;
 								 if(msg.ballotNum > this.highestBallotNum){
 									 this.highestBallotNum = msg.ballotNum;
 									 this.acceptedValue = msg.value;
 									 System.out.println("Value of highest ballot num : "+this.highestBallotNum+" "+this.acceptedValue);
 								 }
-								 if(this.ackCount > Constants.NO_OF_NODES/2){
+								 if(this.ackCount > Constants.NO_OF_NODES/2 && this.acceptSent == false){
 								 if(this.acceptedValue.equals(Constants.NULL_STRING)){
 									 System.out.println("Accepted values recvd is null");
 									 newmsg = new Message(Constants.MESSAGE_TYPES.ACCEPT,this.pid, Constants.BROADCAST, this.ballotNum,this.currentMsg);
 									 System.out.println("Sending accept message : "+newmsg.toString());
 									 sendMessage(newmsg, requestSocket);
+									 this.acceptSent = true;
 								 }
 								 else{
 									 System.out.println("Accepted values recvd is not null");
 									 newmsg = new Message(Constants.MESSAGE_TYPES.ACCEPT,this.pid, Constants.BROADCAST, this.ballotNum,this.acceptedValue);
 									 System.out.println("Sending accept message : "+newmsg.toString());
 									 sendMessage(newmsg, requestSocket);
+									 this.acceptSent = true;
 								 }
+								/* writeToDictionary(newmsg);
+								 writeToLog(newmsg);
+								 this.currentLeader = this.pid;*/
 								}
+								
 								break;
 								
 				}
@@ -229,6 +252,8 @@ public class Client implements Runnable {
 		this.acceptedValue = Constants.NULL_STRING;
 		this.ackCount = 0;
 		this.highestBallotNum = Constants.NULL;
+		this.prepareId = Constants.NULL;
+		this.acceptSent = false;
 	}
 
 
