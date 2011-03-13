@@ -9,6 +9,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.PortUnreachableException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -102,24 +103,39 @@ public class Router implements Runnable {
 						    for (Entry<Integer, String> e : set ) {
 						    	
 								 //if(e.getKey() != msg.srcID){
-								  Message newmsg = new Message(msg.msgType,msg.srcID,e.getKey(), msg.ballotNum, msg.value);
+								  Message newmsg = new Message(msg.msgType,msg.srcID,e.getKey(), msg.ballotNum, msg.value,msg.op);
 								  try {
+									 
 									sendMessage(newmsg, requestSocket);
+								  }catch(UnknownHostException e3){
+										System.out.println("Unknown host Exception");
+								  }
+								  catch(PortUnreachableException e2){
+										System.out.println("Port Unreachable Exception");
+										 
 								} catch (IOException e1) {
-									
+									System.out.println("IO Exception");
 									e1.printStackTrace();
-								}
-						
-						    	
+								} 
+					
+					    	
 						    }
-
 				}
 					else {
 						try {
+							 
 							sendMessage(msg, requestSocket);
-						} catch (IOException e) {
+						}catch(UnknownHostException e3){
+							System.out.println("Unknown host Exception");
+							
+						}catch(PortUnreachableException e2){
+								System.out.println("Port Unreachable Exception");
+							}
+						 catch (IOException e) {
+							System.out.println("IO Exception");
 							e.printStackTrace();
 						}
+						
 					}
 
 				// sendTerminateMessage("END_OF_CONNECTION", requestSocket);
@@ -130,29 +146,28 @@ public class Router implements Runnable {
 	}
 
 	private void sendMessage(Message msg, DatagramSocket requestSocket)
-			throws IOException {
+			throws IOException ,PortUnreachableException, UnknownHostException{
 
 		byte buf[] = new byte[100000];
 		String[] msgparts = new String[5];
 		DatagramPacket newpkt = null;
 		InetAddress ip = null;
-		try {
+		
 			//msgparts = msg.split(":", 3);
 			
 			if (Router.clientStatus.get(msg.destID).equals(CLIENTSTATE.UP)) {
 				String hostname = Router.clientTable.get(msg.destID);
-				try {
+				
+					
+				
 					ip = InetAddress.getByName(hostname);
-				} catch (UnknownHostException e) {
-					System.out
-							.println("The host name you are trying to resolve is incorrect!");
-				}
+					
 				
 				
 					newpkt = new DatagramPacket(buf, buf.length, ip,
 							Constants.ClientPort);
 				
-
+						
 				newpkt.setData(msg.getBytes());
 				requestSocket.send(newpkt);
 
@@ -161,10 +176,9 @@ public class Router implements Runnable {
 				this.msgQueue.add(msg);
 			}
 
-		} catch (IOException ioException) {
-			ioException.printStackTrace();
+		
 		}
-	}
+	
 
 	public static void main(String args[]) throws IOException {
 

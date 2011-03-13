@@ -1,5 +1,7 @@
 package hw3;
 
+import hw3.Constants.OPERATION;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
@@ -16,10 +18,14 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 
 
@@ -40,6 +46,9 @@ public class Client implements Runnable {
 	private int currentLeader;
 	private int prepareId;
 	private boolean acceptSent;
+	private OPERATION currentOp;
+	public HashMap<String,String> dictionary;
+	
 
 	public Client(int pid, int portNum) {
 		this.portNum = portNum;
@@ -51,7 +60,8 @@ public class Client implements Runnable {
 		this.logFile = new File(this.logName);
 		this.ballotNum = 1;
 		this.currentLeader = Constants.NULL;
-		
+		this.currentOp = null;
+		this.dictionary = new HashMap<String,String>();
 		resetValues();
 	}
 
@@ -77,7 +87,8 @@ public class Client implements Runnable {
 
 		
 			System.out
-					.println("Enter the value that has to be written to the Dictionary: ");
+					.println("For an insert operation to be performed enter: I:<key>-<value>");
+			System.out.println("To delete a key enter the value to be be deleted as : D:<value>");
 			
 			try {
 				msg = br.readLine();
@@ -86,15 +97,23 @@ public class Client implements Runnable {
 				e1.printStackTrace();
 			}
 			
-			this.currentMsg = msg.toString();
+			String msgParts[] = msg.split(":", 2);
+			if(msgParts[0].toString().equals("I")){
+				this.currentOp = Constants.OPERATION.INSERT;
+			}
+			else{
+				this.currentOp = Constants.OPERATION.DELETE;
+			}
+				
+			this.currentMsg = msgParts[1].toString();
 			System.out.println("Current message "+this.currentMsg);
 			Message msgToSend = null;
 			if(this.currentLeader != Constants.NULL){
 			
-			msgToSend = new Message(Constants.MESSAGE_TYPES.TOLEADER,this.pid, this.currentLeader, ++ballotNum,this.currentMsg);	
+			msgToSend = new Message(Constants.MESSAGE_TYPES.TOLEADER,this.pid, this.currentLeader, ++ballotNum,this.currentMsg,this.currentOp);	
 			}
 			else {
-			msgToSend = new Message(Constants.MESSAGE_TYPES.PREPARE,this.pid, Constants.BROADCAST, ++ballotNum,Constants.NULL_STRING);
+			msgToSend = new Message(Constants.MESSAGE_TYPES.PREPARE,this.pid, Constants.BROADCAST, ++ballotNum,Constants.NULL_STRING,null);
 			}
 			sendMessage(msgToSend, requestSocket);
 		
@@ -105,12 +124,35 @@ public class Client implements Runnable {
 
 
 	private void writeToDictionary(Message m) throws IOException {
-		BufferedWriter file = null;
+	/*	BufferedWriter file = null;
 	
 		file = new BufferedWriter(new FileWriter(this.dicFile, true));
 		file.append(m.value+"\n");
 		
-		file.close();
+		file.close();*/
+		String kv[] = m.value.split("-",2);
+		this.dictionary.put(kv[0], kv[1]);
+		System.out.println("Writing "+kv[0]+"-"+kv[1]+" to the Dictionary");
+		
+	}
+	
+	private synchronized void removeFromDic(Message msg) throws IOException {
+		
+		LinkedList<String> keys = new LinkedList<String>();
+		Set<Map.Entry<String,String>> set = this.dictionary.entrySet();
+		
+	    for (Map.Entry<String, String> e : set) {
+	    	if(e.getValue().equals(msg.value)){
+	    		keys.add(e.getKey());
+	    		System.out.println("Removing entry "+e.getKey()+"-"+e.getValue()+" from the dictionary ");
+	    		
+	    	}
+	     
+	    }
+	    while(!keys.isEmpty()){
+	    	this.dictionary.remove(keys.remove());
+	    }
+		
 		
 	}
 	
@@ -171,6 +213,7 @@ public class Client implements Runnable {
 		}
 		while (true) {
 			try {
+				
 				thisConnection.receive(recvdpkt);
 				// String msg = new String(recvdpkt.getData());
 
@@ -178,7 +221,7 @@ public class Client implements Runnable {
 				System.out.println("Recvd in client :"+msg.value+" "+msg.msgType);
 				switch(msg.msgType){
 				case TOLEADER:
-								Message newmsg = new Message(Constants.MESSAGE_TYPES.ACCEPT,msg.srcID, Constants.BROADCAST, this.ballotNum, msg.value);
+								Message newmsg = new Message(Constants.MESSAGE_TYPES.ACCEPT,msg.srcID, Constants.BROADCAST, this.ballotNum, msg.value,msg.op);
 								sendMessage(newmsg, requestSocket);
 								break;
 					
@@ -187,7 +230,13 @@ public class Client implements Runnable {
 								this.currentLeader = msg.srcID;
 								}
 								System.out.println("The current leader is: "+this.currentLeader);
+								if(msg.op != null && msg.op == Constants.OPERATION.INSERT){
 								writeToDictionary(msg);
+								}
+								else
+								{
+								removeFromDic(msg);
+								}
 								writeToLog(msg);
 								resetValues();
 															
@@ -197,7 +246,7 @@ public class Client implements Runnable {
 								if(msg.ballotNum >= this.acceptedBallotNum){
 									this.prepareId = msg.srcID;
 									this.acceptedBallotNum = msg.ballotNum;
-									newmsg = new Message(Constants.MESSAGE_TYPES.ACK,this.pid, msg.srcID, this.acceptedBallotNum, this.acceptedValue);
+									newmsg = new Message(Constants.MESSAGE_TYPES.ACK,this.pid, msg.srcID, this.acceptedBallotNum, this.acceptedValue,msg.op);
 									sendMessage(newmsg, requestSocket);
 								}
 								break;
@@ -213,14 +262,14 @@ public class Client implements Runnable {
 								 if(this.ackCount > Constants.NO_OF_NODES/2 && this.acceptSent == false){
 								 if(this.acceptedValue.equals(Constants.NULL_STRING)){
 									 System.out.println("Accepted values recvd is null");
-									 newmsg = new Message(Constants.MESSAGE_TYPES.ACCEPT,this.pid, Constants.BROADCAST, this.ballotNum,this.currentMsg);
+									 newmsg = new Message(Constants.MESSAGE_TYPES.ACCEPT,this.pid, Constants.BROADCAST, this.ballotNum,this.currentMsg,this.currentOp);
 									 System.out.println("Sending accept message : "+newmsg.toString());
 									 sendMessage(newmsg, requestSocket);
 									 this.acceptSent = true;
 								 }
 								 else{
 									 System.out.println("Accepted values recvd is not null");
-									 newmsg = new Message(Constants.MESSAGE_TYPES.ACCEPT,this.pid, Constants.BROADCAST, this.ballotNum,this.acceptedValue);
+									 newmsg = new Message(Constants.MESSAGE_TYPES.ACCEPT,this.pid, Constants.BROADCAST, this.ballotNum,this.acceptedValue,this.currentOp);
 									 System.out.println("Sending accept message : "+newmsg.toString());
 									 sendMessage(newmsg, requestSocket);
 									 this.acceptSent = true;
@@ -236,6 +285,7 @@ public class Client implements Runnable {
 				
 				
 				}
+			
 			catch (IOException e) {
 
 				e.printStackTrace();
@@ -244,6 +294,9 @@ public class Client implements Runnable {
 		}
 
 	}
+
+
+	
 
 
 	private void resetValues() {
@@ -331,18 +384,16 @@ public class Client implements Runnable {
 	}
 
 	private static void listValues(Client client) throws IOException {
-		
-		BufferedReader file1;
-		String thisLine;
-		String[] lineParts = new String[4];
-		
-		file1 = new BufferedReader(new FileReader(client.dicFile));
-		System.out.println("List of Keys:");
-		while ((thisLine = file1.readLine()) != null) {
-			lineParts = thisLine.split(" ", 4);
-			System.out.println(lineParts[0]);
+
+		Iterator it = client.dictionary.entrySet().iterator();
+		    while (it.hasNext()) {
+		        Map.Entry pairs = (Map.Entry)it.next();
+		        System.out.println(pairs.getKey() + " : " + pairs.getValue());
+		    }
+		}
+
 				
-	}
+	
 
 	}
-}
+

@@ -15,6 +15,9 @@ public class Constants {
 	public static enum MESSAGE_TYPES {
 		TOLEADER, PREPARE, ACCEPT, ACK
 	}
+	public static enum OPERATION {
+		INSERT, DELETE
+	}
 	public static final int NULL = -1;
 	public static final String NULL_STRING = "null";
 	public static int LEADER = 0;

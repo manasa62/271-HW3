@@ -14,15 +14,17 @@ public class Message implements Serializable{
 	public int srcID;
 	public int ballotNum;
 	public String value;
+	public Constants.OPERATION op;
 	
 	
-	public Message(Constants.MESSAGE_TYPES msgType, int src, int dest, int proposalNum, String value){
+	public Message(Constants.MESSAGE_TYPES msgType, int src, int dest, int proposalNum, String value, Constants.OPERATION op){
 		
 		this.msgType = msgType;
 		this.destID = dest;
 		this.srcID = src;
 		this.ballotNum = proposalNum;
 		this.value =  value;
+		this.op = op;
 	}
 	
 	public String toString(){
