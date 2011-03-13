@@ -107,12 +107,7 @@ public class Router implements Runnable {
 								  try {
 									 
 									sendMessage(newmsg, requestSocket);
-								  }catch(UnknownHostException e3){
-										System.out.println("Unknown host Exception");
-								  }
-								  catch(PortUnreachableException e2){
-										System.out.println("Port Unreachable Exception");
-										 
+								 
 								} catch (IOException e1) {
 									System.out.println("IO Exception");
 									e1.printStackTrace();
@@ -124,7 +119,12 @@ public class Router implements Runnable {
 					else {
 						try {
 							 
-							sendMessage(msg, requestSocket);
+							boolean res = sendMessage(msg, requestSocket);
+							if(!res){
+								System.out.println("Resending NOHOST to "+msg.srcID);
+								Message newmsg = new Message(Constants.MESSAGE_TYPES.NOHOST,msg.srcID,msg.srcID,msg.ballotNum, msg.value,msg.op);	
+								sendMessage(newmsg, requestSocket);
+							}
 						}catch(UnknownHostException e3){
 							System.out.println("Unknown host Exception");
 							
@@ -145,7 +145,7 @@ public class Router implements Runnable {
 
 	}
 
-	private void sendMessage(Message msg, DatagramSocket requestSocket)
+	private boolean sendMessage(Message msg, DatagramSocket requestSocket)
 			throws IOException ,PortUnreachableException, UnknownHostException{
 
 		byte buf[] = new byte[100000];
@@ -156,10 +156,10 @@ public class Router implements Runnable {
 			//msgparts = msg.split(":", 3);
 			
 			if (Router.clientStatus.get(msg.destID).equals(CLIENTSTATE.UP)) {
+				
+				
 				String hostname = Router.clientTable.get(msg.destID);
-				
-					
-				
+
 					ip = InetAddress.getByName(hostname);
 					
 				
@@ -170,13 +170,18 @@ public class Router implements Runnable {
 						
 				newpkt.setData(msg.getBytes());
 				requestSocket.send(newpkt);
+				return true;
 
 			} else if (Router.clientStatus.get(msg.destID).equals(
 					CLIENTSTATE.BLOCKED)) {
 				this.msgQueue.add(msg);
+				return true;
 			}
-
-		
+			
+			else {
+				return false;
+			}
+		 
 		}
 	
 

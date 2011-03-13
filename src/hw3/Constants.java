@@ -13,7 +13,7 @@ public class Constants {
 	public static  int pid = 0;
 	
 	public static enum MESSAGE_TYPES {
-		TOLEADER, PREPARE, ACCEPT, ACK
+		TOLEADER, PREPARE, ACCEPT, ACK , NOHOST
 	}
 	public static enum OPERATION {
 		INSERT, DELETE

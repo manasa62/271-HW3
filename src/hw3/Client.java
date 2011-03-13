@@ -281,6 +281,9 @@ public class Client implements Runnable {
 								
 								break;
 								
+				case NOHOST:	newmsg = new Message(Constants.MESSAGE_TYPES.PREPARE,this.pid, Constants.BROADCAST, ++ballotNum,Constants.NULL_STRING,null);
+								sendMessage(newmsg, requestSocket);
+								
 				}
 				
 				
