@@ -108,12 +108,12 @@ public class Router implements Runnable {
 				while (!this.msgQueue.isEmpty()) {
 					msg = this.msgQueue.remove();
 					logger.info("Received message: "+msg.toString());
-					System.out.println("Recvd msg "+msg.value);
 					
 					if(msg.destID == Constants.BROADCAST){
+						logger.info("BROADCASTING message :"+msg.toString());
 						 Set<Entry<Integer, String>> set = this.clientTable.entrySet();
 						    for (Entry<Integer, String> e : set ) {
-						    	logger.info("BROADCASTING message :"+msg.toString());
+						    	
 								 //if(e.getKey() != msg.srcID){
 								  Message newmsg = new Message(msg.msgType,msg.srcID,e.getKey(), msg.ballotNum, msg.value,msg.op);
 								  try {
@@ -136,7 +136,7 @@ public class Router implements Runnable {
 							if(!res){
 								logger.info("Destination host "+msg.destID+" unreachable");
 								logger.info("Sending : "+msg.toString());
-								System.out.println("Sending NOHOST to "+msg.srcID);
+								
 								Message newmsg = new Message(Constants.MESSAGE_TYPES.NOHOST,msg.srcID,msg.srcID,msg.ballotNum, msg.value,msg.op);	
 								sendMessage(newmsg, requestSocket);
 							}
@@ -217,7 +217,7 @@ public class Router implements Runnable {
 			input = br.readLine();
 
 		}
-
+				
 		Iterator iterator = Router.clientTable.keySet().iterator();
 		System.out.println("Routing table:");
 		System.out.println("--------------");

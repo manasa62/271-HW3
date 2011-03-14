@@ -50,17 +50,7 @@
     
     
     
-    
-    <target name="runLocalFileServer" depends="compile" description="run a File Server Locally">
-        
-        <!-- run computer -->
-        <java classname="hw3.fileServer" fork="true">
-            <arg value="localhost:${port}"/>
-            <classpath>
-                <pathelement location="${build}/"/>
-            </classpath>
-        </java>
-    </target>
+  
     
     
     <target name="runLocalRouter" description="runs Router Locally">
@@ -82,36 +72,14 @@
         <!-- run remote space -->
         <java classname="hw3.Client" fork="true">
             <arg value="${pid}"/>
+			<arg value="${nodes}"/>
             <classpath>
                 <pathelement location="${build}/"/>
             </classpath>
         </java>
     </target>
     
-    <target name="runRemoteFileServer" depends="compile" description="run a File Server remotely">
-        
-        <sshexec host="${host1}" username="${username}" keyfile="/cs/student/${username}/.ssh/headless_rsa" trust="true" command="cd /cs/student/${username}/${hw_folder}/; ant runLocalFileServer" passphrase=""/>
-    </target>
-    
-    
-    <target name="runRemoteRouter" description="runs Router remotely">
-        
-        <sshexec host="${host2}" username="${username}" keyfile="/cs/student/${username}/.ssh/headless_rsa" trust="true" command="cd /cs/student/${username}/${hw_folder}/; ant runLocalRouter" passphrase=""/>
-    </target>
-    
-    
-    
-    
-    <target name="runRemoteClient1" description="runs Client on remotely">
-        
-       <sshexec host="${host3}" username="${username}" keyfile="/cs/student/${username}/.ssh/headless_rsa" trust="true" command="cd /cs/student/${username}/${hw_folder}/; ant runLocalClient" passphrase=""/>
-    </target>
-    
-    
-    <target name="runRemoteClient2" description="runs Client on remotely">
-        
-       <sshexec host="${host4}" username="${username}" keyfile="/cs/student/${username}/.ssh/headless_rsa" trust="true" command="cd /cs/student/${username}/${hw_folder}/; ant runLocalClient" passphrase=""/>
-    </target>
+ 
     
     
 </project>

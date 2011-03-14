@@ -48,7 +48,7 @@ public class RouterThread implements Runnable {
 			this.thisConnection = new DatagramSocket(portNum);
 
 		} catch (IOException e) {
-			System.out.println("Connection failed on the port: " + portNum);
+			
 			logger.warning("Connection failed on the port: " + portNum);
 			e.printStackTrace();
 		}
@@ -81,10 +81,10 @@ public class RouterThread implements Runnable {
 		Message msg = null;
 		byte[] buf = new byte[10000];
 		String[] msgparts = null;
-		System.out.println("In write to router q");
+		
 
 		DatagramPacket recvdPkt = new DatagramPacket(buf, buf.length);
-		System.out.println("Recieved a packet");
+		
 
 		while(true){
 		try {
@@ -101,8 +101,6 @@ public class RouterThread implements Runnable {
 	/*	msgparts = new String[2];
 		msgparts = msg.split(":", 2);*/
 
-		System.out.println("Packet destined to " + msg.destID
-				+ "recieved from " + recvdPkt.getAddress().getHostName());
 		
 
 		
@@ -131,12 +129,12 @@ public class RouterThread implements Runnable {
 	private void printRouterClientTable() {
 		Iterator iterator = router.getClientTable().keySet().iterator();
 		logger.info("Routing table contents-->");
-		System.out.println("Routing table contents-->");
+		
 		while (iterator.hasNext()) {
 			String key = iterator.next().toString();
 			String value = router.getClientTable().get(key).toString();
 			logger.info(key + " "+ value);
-			System.out.println(key + " " + value);
+			
 		}
 
 	}
