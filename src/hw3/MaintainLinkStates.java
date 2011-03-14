@@ -6,10 +6,22 @@ import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.logging.Logger;
 
 public class MaintainLinkStates implements Runnable {
-	public MaintainLinkStates() {
+	private Logger logger;
+	private static final String LOG_FILE_PREFIX = Constants.LOG_DIR
+			+ "linkstates";
+	private static final String LOG_FILE_SUFFIX = ".log";
 
+	private void initLogger() throws IOException {
+		this.logger = hw3Logger.getLogger("linkstates", LOG_FILE_PREFIX
+				+ LOG_FILE_SUFFIX);
+
+	}
+
+	public MaintainLinkStates() throws IOException {
+		initLogger();
 	}
 
 	private static void printActiveClients() {
@@ -18,7 +30,7 @@ public class MaintainLinkStates implements Runnable {
 		System.out.println("Active registered clients");
 		System.out.println("--------------------------");
 		while (iterator.hasNext()) {
-			Integer key = (Integer)iterator.next();
+			Integer key = (Integer) iterator.next();
 			String value = Router.clientStatus.get(key).toString();
 
 			System.out.println(i + " Host " + i + ":" + key + " "
@@ -56,12 +68,20 @@ public class MaintainLinkStates implements Runnable {
 						e.printStackTrace();
 					}
 					if (state.equals("UP")) {
-						Router.clientStatus.put(Integer.parseInt(input), Router.CLIENTSTATE.UP);
+						Router.clientStatus.put(Integer.parseInt(input),
+								Router.CLIENTSTATE.UP);
+						logger.info("Client " + input
+								+ " link status set to UP");
 					} else if (state.equals("DOWN")) {
-						Router.clientStatus.put(Integer.parseInt(input), Router.CLIENTSTATE.DOWN);
+						Router.clientStatus.put(Integer.parseInt(input),
+								Router.CLIENTSTATE.DOWN);
+						logger.info("Client " + input
+								+ " link status set to DOWN");
 					} else {
 						Router.clientStatus.put(Integer.parseInt(input),
 								Router.CLIENTSTATE.BLOCKED);
+						logger.info("Client " + input
+								+ " link status set to BLOCKED");
 					}
 
 					System.out
@@ -81,7 +101,6 @@ public class MaintainLinkStates implements Runnable {
 				e1.printStackTrace();
 			}
 
-			
 		}
 	}
 

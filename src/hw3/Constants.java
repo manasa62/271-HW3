@@ -23,5 +23,6 @@ public class Constants {
 	public static int LEADER = 0;
 	public static final int BROADCAST = 9999;
 	public static final int NO_OF_NODES = 3;
+	public static final String LOG_DIR = "/cs/student/manasa/hw3/logs/";
 
 }

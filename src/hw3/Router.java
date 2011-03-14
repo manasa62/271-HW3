@@ -22,6 +22,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.logging.Logger;
 
 public class Router implements Runnable {
 
@@ -39,11 +40,21 @@ public class Router implements Runnable {
 		clientStatus = new HashMap<Integer, Router.CLIENTSTATE>();
 		clientTable = new HashMap<Integer, String>();
 	}
+	private Logger logger;
+	private static final String LOG_FILE_PREFIX = Constants.LOG_DIR
+			+ "router";
+	private static final String LOG_FILE_SUFFIX = ".log";
 
-	public Router(int portNum) {
+	private void initLogger() throws IOException {
+		this.logger = hw3Logger.getLogger("router", LOG_FILE_PREFIX
+				+ LOG_FILE_SUFFIX);
+	}
+
+	public Router(int portNum) throws IOException {
 		this.msgQueue = new LinkedBlockingQueue<Message>();
 		this.portNum = portNum;
 		new Thread(this).start();
+		initLogger();
 	}
 
 	public LinkedBlockingQueue<Message> getMsgQueue() {
@@ -70,7 +81,7 @@ public class Router implements Runnable {
 		this.clientTable = clientTable;
 	}
 
-	public void listen() {
+	public void listen() throws IOException {
 
 		RouterThread w;
 		w = new RouterThread(this.portNum, this);
@@ -96,12 +107,13 @@ public class Router implements Runnable {
 
 				while (!this.msgQueue.isEmpty()) {
 					msg = this.msgQueue.remove();
+					logger.info("Received message: "+msg.toString());
 					System.out.println("Recvd msg "+msg.value);
 					
 					if(msg.destID == Constants.BROADCAST){
 						 Set<Entry<Integer, String>> set = this.clientTable.entrySet();
 						    for (Entry<Integer, String> e : set ) {
-						    	
+						    	logger.info("BROADCASTING message :"+msg.toString());
 								 //if(e.getKey() != msg.srcID){
 								  Message newmsg = new Message(msg.msgType,msg.srcID,e.getKey(), msg.ballotNum, msg.value,msg.op);
 								  try {
@@ -120,17 +132,15 @@ public class Router implements Runnable {
 						try {
 							 
 							boolean res = sendMessage(msg, requestSocket);
+							logger.info("Sending message :"+msg.toString());
 							if(!res){
-								System.out.println("Resending NOHOST to "+msg.srcID);
+								logger.info("Destination host "+msg.destID+" unreachable");
+								logger.info("Sending : "+msg.toString());
+								System.out.println("Sending NOHOST to "+msg.srcID);
 								Message newmsg = new Message(Constants.MESSAGE_TYPES.NOHOST,msg.srcID,msg.srcID,msg.ballotNum, msg.value,msg.op);	
 								sendMessage(newmsg, requestSocket);
 							}
-						}catch(UnknownHostException e3){
-							System.out.println("Unknown host Exception");
-							
-						}catch(PortUnreachableException e2){
-								System.out.println("Port Unreachable Exception");
-							}
+						}
 						 catch (IOException e) {
 							System.out.println("IO Exception");
 							e.printStackTrace();
@@ -224,7 +234,7 @@ public class Router implements Runnable {
 
 	}
 
-	private static void startStatusMaintainThread() {
+	private static void startStatusMaintainThread() throws IOException {
 		MaintainLinkStates w;
 		w = new MaintainLinkStates();
 		Thread t = new Thread(w);

@@ -17,17 +17,28 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Iterator;
+import java.util.logging.Logger;
 
 public class RouterThread implements Runnable {
 
 	private DatagramSocket thisConnection;
 	private Router router;
 	private int portNum;
+	private Logger logger;
+	private static final String LOG_FILE_PREFIX = Constants.LOG_DIR
+			+ "RouterThread";
+	private static final String LOG_FILE_SUFFIX = ".log";
+	
+	private void initLogger() throws IOException {
+		this.logger = hw3Logger.getLogger("RouterThread", LOG_FILE_PREFIX
+				+ LOG_FILE_SUFFIX);
+	}
 
-	public RouterThread(int portNum, Router router) {
+	public RouterThread(int portNum, Router router) throws IOException {
 		this.thisConnection = null;
 		this.router = router;
 		this.portNum = portNum;
+		initLogger();
 	}
 
 
@@ -38,6 +49,7 @@ public class RouterThread implements Runnable {
 
 		} catch (IOException e) {
 			System.out.println("Connection failed on the port: " + portNum);
+			logger.warning("Connection failed on the port: " + portNum);
 			e.printStackTrace();
 		}
 
@@ -84,12 +96,14 @@ public class RouterThread implements Runnable {
 		}
 
 		msg = toObject(recvdPkt.getData());
+		logger.info("Recieved packet in router : "+msg.toString());
 
 	/*	msgparts = new String[2];
 		msgparts = msg.split(":", 2);*/
 
 		System.out.println("Packet destined to " + msg.destID
 				+ "recieved from " + recvdPkt.getAddress().getHostName());
+		
 
 		
 		//	String newmsg = msg + ":" + recvdPkt.getAddress().getHostName();
@@ -116,11 +130,12 @@ public class RouterThread implements Runnable {
 
 	private void printRouterClientTable() {
 		Iterator iterator = router.getClientTable().keySet().iterator();
+		logger.info("Routing table contents-->");
 		System.out.println("Routing table contents-->");
 		while (iterator.hasNext()) {
 			String key = iterator.next().toString();
 			String value = router.getClientTable().get(key).toString();
-
+			logger.info(key + " "+ value);
 			System.out.println(key + " " + value);
 		}
 
